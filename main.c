@@ -11,12 +11,13 @@
 
 static void *compute_image(void *arg);
 static void *sRGB(unsigned char *row);
-static void *histeq();
+static void *histeq(unsigned char *row);
 static void *invert(unsigned char *row);
 static void *greyscale(unsigned char *row);
+static void setup_histeq(unsigned char *data, int num_values);
 static void show_help();
 
-double *nk[256] = {0};
+double hist_map[256] = {0};
 
 // Basically defines a image_processing_func as a 
 // function that takes in nothing and returns nothing
@@ -31,18 +32,6 @@ typedef struct thread_args {
 
 int main(int argc, char *argv[])
 {
-
-    for (int i = 0; i < 256; i++) {
-        nk[i] = malloc(sizeof(int)); // Allocate memory for each element
-        if (nk[i] != NULL) {
-            *nk[i] = 0; // Initialize to 0
-        } else {
-            // Handle memory allocation failure if needed
-            fprintf(stderr, "Memory allocation failed for nk[%d]\n", i);
-            exit(EXIT_FAILURE);
-        }
-    }
-
     char c;
 
     // These are the default configuration values used
@@ -86,6 +75,7 @@ int main(int argc, char *argv[])
 	}
     printf("-W %d -H %d -t %d -e %s -i %s -o %s\n", image_width, image_height, num_threads, 
                                                 enhancement, input_name, output_name);
+
     // Create file pointers
     FILE *fp;
     FILE *new_fp;
@@ -182,6 +172,8 @@ int main(int argc, char *argv[])
         else if (strcmp(enhancement, "histeq") == 0)
         {
             thread_params[t].func_ptr = histeq;
+            int total_values = image_width * image_height * RGB_VALUE;
+            setup_histeq(thread_params->data, total_values);
         }
         else if (strcmp(enhancement, "invert") == 0)
         {
@@ -217,55 +209,6 @@ int main(int argc, char *argv[])
     }
     else 
     {
-        int n = 0;
-        for (int i = 0; i < 256; i++)
-        {
-            n += *nk[i];
-            printf("%d: %f\n", i, *nk[i]);
-        }
-        printf("%d\n", n);
-
-        for (int i = 0; i < 256; i++)
-        {
-            (*nk[i]) = *nk[i] / n;
-            printf("%d: %f\n", i, *nk[i]);
-        }
-
-        double total = 0;
-        for (int i = 0; i < 256; i++)
-        {
-            total += *nk[i];
-            (*nk[i]) = total;
-            printf("%d: %f\n", i, *nk[i]);
-        }
-        for (int i = 0; i < 256; i++)
-        {
-            (*nk[i]) = *nk[i] * 255;
-            printf("%d: %f\n", i, *nk[i]);
-        }
-        for (int i = 0; i < 256; i++)
-        {
-            (*nk[i]) = round(*nk[i]);
-            printf("%d: %f\n", i, *nk[i]);
-        }
-        unsigned char lookup[256];
-        for (int i = 0; i < 256; i++) {
-            lookup[i] = (unsigned char)(*nk[i]);
-        }
-
-        for (int i = thread_params->start_row; i <= thread_params->end_row; i++)
-        {
-            unsigned char *row = thread_params->data + (i * 512 * RGB_VALUE);
-            // Apply the new values to the image
-            for (int i = 0; i < 512*3; i++) {
-                row[i] = lookup[row[i]];
-            }
-        }
-
-        // Free the allocated memory
-        for (int i = 0; i < 256; i++) {
-            free(nk[i]);
-        }
         // Write new image data to the output file
         for (int i = 0; i < image_width * image_height * RGB_VALUE; i++)
         {
@@ -326,17 +269,10 @@ static void *sRGB(unsigned char *row)
 
 static void *histeq(unsigned char *row)
 {
-    for (int i = 0; i < 256; i++)
+    for (int i = 0; i < 512 * RGB_VALUE; i++)
     {
-        for (int j = 0; j < 512 * RGB_VALUE; j++)
-        {
-            if (i == row[j])
-            {
-                (*nk[i])++;
-            }
-        }
+        row[i] = (unsigned char)hist_map[row[i]];
     }
-
     return NULL;
 }
 
@@ -370,6 +306,25 @@ static void *greyscale(unsigned char *row)
         }
     }
     return NULL;
+}
+
+static void setup_histeq(unsigned char *data, int num_values)
+{
+    for (int i = 0; i < num_values; i++)
+    {
+        hist_map[data[i]]++;
+    }
+
+    double total = 0;
+    for (int i = 0; i < 256; i++)
+    {
+        total += (hist_map[i] / num_values);
+        hist_map[i] = round(total * 255);
+    }
+    for (int i = 0; i < 256; i++)
+    {
+        printf("%d: %f\n", i, hist_map[i]);
+    }
 }
 
 // Show help message
