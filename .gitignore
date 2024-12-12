@@ -1,6 +1,6 @@
 *.d
 *.o
-mandel
+image
 *.png
-output.pgm
 output.ppm
+output.pgm
