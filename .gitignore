@@ -4,6 +4,6 @@
 *.d
 *.o
 image
-*.png
+output.png
 output.ppm
 output.pgm
