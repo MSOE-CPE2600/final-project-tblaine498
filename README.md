@@ -9,7 +9,7 @@ Finally the program supports 4 different image processing options:\
 Greyscale\
 sRGB\
 Histogram Equalization\
-Inversion\
+Inversion
 
 Note: Since .pgm file are already greyscale, the greyscale function has no effect
 
