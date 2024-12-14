@@ -1,6 +1,6 @@
-# Modified by: Tyler Blaine
-# Assignments: 11/12
-# Section: CPE2600 111
+# Tyler Blaine, CPE2600 111
+# Lab 15, Image Processing
+
 
 CC=gcc
 CFLAGS=-c -Wall -g

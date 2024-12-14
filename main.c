@@ -1,3 +1,6 @@
+// Tyler Blaine, CPE2600 111
+// Lab 15, Image Processing
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
